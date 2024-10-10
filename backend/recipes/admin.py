@@ -1,6 +1,19 @@
 from django.contrib import admin
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from .models import IngredientItem, RecipeTag, Dish, DishIngredient, FavoriteRecipe, ShoppingList
+from users.forms import CustomUserCreationForm, CustomUserChangeForm
+
+User = get_user_model()
+
+
+@admin.register(User)
+class CustomUserAdmin(admin.ModelAdmin):
+    add_form = CustomUserCreationForm
+    form = CustomUserChangeForm
+    model = User
+    list_display = ['username', 'email', 'role']
+    list_editable = 'role',
+
 
 @admin.register(IngredientItem)
 class IngredientAdmin(admin.ModelAdmin):

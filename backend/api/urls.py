@@ -6,6 +6,7 @@ from .views import (
     DishIngredientList, DishIngredientDetail,
     FavoriteRecipeList, FavoriteRecipeDetail,
     ShoppingListList, ShoppingListDetail,
+    UserDetail,
 )
 
 urlpatterns = [
@@ -21,4 +22,5 @@ urlpatterns = [
     path('api/favorite-recipes/<int:pk>/', FavoriteRecipeDetail.as_view(), name='favorite-recipe-detail'),
     path('api/shopping-lists/', ShoppingListList.as_view(), name='shopping-list-list'),
     path('api/shopping-lists/<int:pk>/', ShoppingListDetail.as_view(), name='shopping-list-detail'),
+    path('users/<int:pk>/', UserDetail.as_view(), name='user-detail'),
 ]
