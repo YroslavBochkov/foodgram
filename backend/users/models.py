@@ -6,13 +6,13 @@ from django.core.validators import RegexValidator
 
 
 ROLES = [
-    ('user', 'Пользователь'),
-    ('admin', 'Администратор'),
+    ('USER', 'Пользователь'),
+    ('ADMIN', 'Администратор'),
 ]
 
 ACCESS_LEVEL = {
-    'user': 1,
-    'admin': 2,
+    'USER': 1,
+    'ADMIN': 2,
 }
 
 
