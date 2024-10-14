@@ -4,8 +4,9 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from recipes.models import IngredientItem, RecipeTag, Dish, DishIngredient, FavoriteRecipe, ShoppingList
-from recipes.models import CustomUser
+from users.models import CustomUser
 from rest_framework import filters, permissions, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .serializers import IngredientItemSerializer, RecipeTagSerializer, DishSerializer, DishIngredientSerializer, FavoriteRecipeSerializer, ShoppingListSerializer, CustomUserSerializer
@@ -13,6 +14,8 @@ from .utils import get_confirmation_code
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import serializers
+from .paginators import CustomPaginator
+from .permissions import (IsAdminPermission)
 
 User = get_user_model()
 

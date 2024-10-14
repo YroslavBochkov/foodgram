@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from users.models import ADMIN, MODERATOR
+from users.models import ADMIN, USER
 
 
 class IsAdminPermission(permissions.BasePermission):
