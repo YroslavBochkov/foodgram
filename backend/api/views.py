@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from recipes.models import IngredientItem, RecipeTag, Dish, DishIngredient, FavoriteRecipe, ShoppingList
 from users.models import CustomUser
-from rest_framework import filters, permissions, status
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
