@@ -4,7 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from slugify import slugify
-    
+
 
 class IngredientItem(models.Model):
     """Модель для ингредиента."""
@@ -59,7 +59,6 @@ class RecipeTag(models.Model):
         return self.title
 
 
-
 class Dish(models.Model):
     """Модель для рецепта."""
 
@@ -68,7 +67,7 @@ class Dish(models.Model):
         related_name='dishes',
         verbose_name='Автор',
     )
-    name = models.CharField(
+    title = models.CharField(
         max_length=200,
         verbose_name='Название',
     )
@@ -101,7 +100,7 @@ class Dish(models.Model):
         ordering = ('-publication_date', )
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class DishIngredient(models.Model):
@@ -127,19 +126,19 @@ class DishIngredient(models.Model):
         )
 
     def __str__(self):
-        return f'{self.ingredient.title}, {self.quantity} {self.ingredient.unit_of_measurement} для {self.dish.name}'
+        return f'{self.ingredient.title}, {self.quantity} {self.ingredient.unit_of_measurement} для {self.dish.title}'
 
 
 class FavoriteRecipe(models.Model):
     """Модель для избранных рецептов."""
     
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, 
+        User, on_delete=models.CASCADE,
         related_name='favorite_recipes',
         verbose_name='Закладки',
     )
     dish = models.ForeignKey(
-        Dish, on_delete=models.CASCADE, 
+        Dish, on_delete=models.CASCADE,
         related_name='favorited_by',
         verbose_name='Избранный рецепт',
     )

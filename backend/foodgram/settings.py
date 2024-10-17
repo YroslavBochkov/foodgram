@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',
     'api',
+    'users',
     'recipes',
 ]
 
@@ -115,10 +116,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
+# URL для медиафайлов
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media/'  # Папка для хранения медиафайлов
+
+# URL для статических файлов
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'static/'  # Папка для хранения статических файлов
 
 
-AUTH_USER_MODEL = 'reviews.CustomUser'
+AUTH_USER_MODEL = 'users.CustomUser'
 
 
 REST_FRAMEWORK = {

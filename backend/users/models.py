@@ -5,6 +5,9 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 
 
+ADMIN = 'admin'
+USER = 'user'
+
 ROLES = [
     ('USER', 'Пользователь'),
     ('ADMIN', 'Администратор'),
@@ -73,9 +76,10 @@ class Subscribe(models.Model):
         CustomUser, on_delete=models.CASCADE, related_name='subscribers',
         verbose_name='Автор'
     )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата подписки')
 
     class Meta:
-        ordering = ('-id',)  # Сортировка по убыванию ID
+        ordering = ('-created_at',)  # Сортировка по убыванию даты подписки
         constraints = [
             models.UniqueConstraint(fields=['user', 'author'],
                                     name='unique_subscription')  # Уникальное ограничение на комбинацию user и author

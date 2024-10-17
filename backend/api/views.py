@@ -1,21 +1,21 @@
-from rest_framework import generics
 from django.conf import settings
+from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from recipes.models import IngredientItem, RecipeTag, Dish, DishIngredient, FavoriteRecipe, ShoppingList
-from users.models import CustomUser
+from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import IngredientItem, RecipeTag, Dish, FavoriteRecipe, ShoppingList, DishIngredient
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import IngredientItemSerializer, RecipeTagSerializer, DishSerializer, DishIngredientSerializer, FavoriteRecipeSerializer, ShoppingListSerializer, CustomUserSerializer
+
 from .utils import get_confirmation_code
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from . import serializers
 from .paginators import CustomPaginator
-from .permissions import (IsAdminPermission)
+from .permissions import (IsAdminAuthorOrReadOnly, IsAdminOrReadOnlyPermission)
+from .filters import IngredientItemFilter, RecipeFilter
 
 User = get_user_model()
 
@@ -65,7 +65,7 @@ class UsersViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'head', 'options', 'post', 'patch', 'delete']
     queryset = User.objects.all()
     serializer_class = serializers.UsersSerializer
-    permission_classes = IsAdminPermission,
+    permission_classes = IsAdminAuthorOrReadOnly,
     filter_backends = filters.SearchFilter,
     search_fields = 'username',
     lookup_field = 'username'
@@ -85,56 +85,86 @@ class UsersViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-class IngredientItemList(generics.ListCreateAPIView):
+
+class IngredientItemViewSet(viewsets.ReadOnlyModelViewSet):
+    """Вьюсет для модели ингредиента."""
     queryset = IngredientItem.objects.all()
-    serializer_class = IngredientItemSerializer
+    serializer_class = serializers.IngredientItemSerializer
+    permission_classes = (IsAdminOrReadOnlyPermission)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientItemFilter
 
-class IngredientItemDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = IngredientItem.objects.all()
-    serializer_class = IngredientItemSerializer
 
-class RecipeTagList(generics.ListCreateAPIView):
+class RecipeTagViewSet(viewsets.ReadOnlyModelViewSet):
+    """Вьюсет для модели тега."""
     queryset = RecipeTag.objects.all()
-    serializer_class = RecipeTagSerializer
+    serializer_class = serializers.RecipeTagSerializer
+    permission_classes = (IsAdminOrReadOnlyPermission)  # Доступ для всех пользователей
 
-class RecipeTagDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = RecipeTag.objects.all()
-    serializer_class = RecipeTagSerializer
 
-class DishList(generics.ListCreateAPIView):
+class DishViewSet(viewsets.ModelViewSet):
+    """Вьюсет для модели рецепта."""
     queryset = Dish.objects.all()
-    serializer_class = DishSerializer
+    serializer_class = serializers.DishSerializer
+    permission_classes = (permissions.IsAuthenticated,)  # Доступ только для аутентифицированных пользователей
+    filter_backends = (DjangoFilterBackend,)  # Фильтрация
+    filterset_class = RecipeFilter  # Убедитесь, что у вас есть фильтр для рецептов
 
-class DishDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Dish.objects.all()
-    serializer_class = DishSerializer
+    def perform_create(self, serializer):
+        """Сохраняем рецепт с текущим пользователем как автором."""
+        serializer.save(creator=self.request.user)
 
-class DishIngredientList(generics.ListCreateAPIView):
-    queryset = DishIngredient.objects.all()
-    serializer_class = DishIngredientSerializer
+    def get_serializer_class(self):
+        """Возвращает соответствующий сериализатор в зависимости от метода запроса."""
+        if self.request.method in permissions.SAFE_METHODS:
+            return serializers.RecipeReadSerializer
+        return serializers.RecipeWriteSerializer
 
-class DishIngredientDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = DishIngredient.objects.all()
-    serializer_class = DishIngredientSerializer
+    @action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
+    def favorite(self, request, pk=None):
+        """Метод для добавления/удаления рецепта в избранное."""
+        recipe = get_object_or_404(Dish, pk=pk)
+        if request.method == 'POST':
+            favorite, created = FavoriteRecipe.objects.get_or_create(user=request.user, dish=recipe)
+            if created:
+                return Response({'detail': 'Рецепт добавлен в избранное.'}, status=201)
+            return Response({'detail': 'Рецепт уже в избранном.'}, status=400)
+        else:
+            favorite = get_object_or_404(FavoriteRecipe, user=request.user, dish=recipe)
+            favorite.delete()
+            return Response({'detail': 'Рецепт удален из избранного.'}, status=204)
 
-class FavoriteRecipeList(generics.ListCreateAPIView):
-    queryset = FavoriteRecipe.objects.all()
-    serializer_class = FavoriteRecipeSerializer
+    @action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
+    def shopping_cart(self, request, pk=None):
+        """Метод для добавления/удаления рецепта из списка покупок."""
+        recipe = get_object_or_404(Dish, pk=pk)
+        if request.method == 'POST':
+            ShoppingList.objects.get_or_create(user=request.user, dish=recipe)
+            return Response({'detail': 'Рецепт добавлен в список покупок.'}, status=201)
+        else:
+            shopping_list_item = get_object_or_404(ShoppingList, user=request.user, dish=recipe)
+            shopping_list_item.delete()
+            return Response({'detail': 'Рецепт удален из списка покупок.'}, status=204)
 
-class FavoriteRecipeDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = FavoriteRecipe.objects.all()
-    serializer_class = FavoriteRecipeSerializer
+    @action(detail=False, permission_classes=[permissions.IsAuthenticated])
+    def download_shopping_cart(self, request):
+        """Метод для скачивания списка покупок."""
+        user = request.user
+        if not user.shopping_lists.exists():
+            return Response({'detail': 'Список покупок пуст.'}, status=400)
 
-class ShoppingListList(generics.ListCreateAPIView):
-    queryset = ShoppingList.objects.all()
-    serializer_class = ShoppingListSerializer
+        ingredients = DishIngredient.objects.filter(
+            dish__in=user.shopping_lists.values_list('dish', flat=True)
+        ).values(
+            'ingredient__title',
+            'ingredient__unit_of_measurement'
+        ).annotate(amount=Sum('quantity'))
 
-class ShoppingListDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = ShoppingList.objects.all()
-    serializer_class = ShoppingListSerializer
+        shopping_list = '\n'.join([
+            f"{ingredient['ingredient__title']} - {ingredient['amount']} {ingredient['ingredient__unit_of_measurement']}"
+            for ingredient in ingredients
+        ])
 
-class UserDetail(generics.RetrieveAPIView):
-    """Представление для получения информации о пользователе."""
-    
-    queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
+        response = HttpResponse(shopping_list, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        return response

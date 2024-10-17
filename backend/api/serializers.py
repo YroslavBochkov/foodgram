@@ -4,6 +4,11 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers, status
 from rest_framework.validators import UniqueValidator
+from rest_framework.serializers import ModelSerializer, ReadOnlyField
+
+from drf_extra_fields.fields import Base64ImageField
+
+
 
 from recipes.models import IngredientItem, RecipeTag, Dish, DishIngredient, FavoriteRecipe, ShoppingList
 
@@ -94,9 +99,12 @@ class MeSerializer(UsersSerializer):
     role = serializers.CharField(read_only=True)
     
 class IngredientItemSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиента."""
     class Meta:
         model = IngredientItem
         fields = ['id', 'title', 'unit_of_measurement']
+
+
 
 class RecipeTagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -106,21 +114,54 @@ class RecipeTagSerializer(serializers.ModelSerializer):
 class DishSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dish
-        fields = ['id', 'name', 'photo', 'preparation_method', 'publication_date', 'cooking_duration', 'creator']
+        fields = ['id', 'title', 'photo', 'preparation_method', 'publication_date', 'cooking_duration', 'creator']
 
 class DishIngredientSerializer(serializers.ModelSerializer):
+    id = ReadOnlyField(source="ingredient.id")
+    title = ReadOnlyField(source="ingredient.title")
+    unit_of_measurement = ReadOnlyField(source="ingredient.unit_of_measurement")
+
     class Meta:
         model = DishIngredient
         fields = ['id', 'dish', 'ingredient', 'quantity']
 
 class FavoriteRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для избранных рецептов."""
+    recipes_count = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+
     class Meta:
         model = FavoriteRecipe
-        fields = ['id', 'user', 'dish']
+        fields = ['id', 'user', 'dish', 'recipes_count', 'recipes']
+        read_only_fields = ('user',)
+
+    def get_recipes_count(self, obj):
+        """Возвращает количество избранных рецептов."""
+        return obj.user.favorite_recipes.count()
+
+    def get_recipes(self, obj):
+        """Возвращает список избранных рецептов."""
+        request = self.context.get('request')
+        limit = request.GET.get('recipes_limit')
+        recipes = obj.user.favorite_recipes.all()
+        if limit:
+            recipes = recipes[:int(limit)]
+        serializer = RecipeShortSerializer(recipes, many=True)
+        return serializer.data
 
 class ShoppingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingList
         fields = ['id', 'user', 'dish']
 
+class RecipeShortSerializer(ModelSerializer):
+    image = Base64ImageField()
 
+    class Meta:
+        model = Dish
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )

@@ -6,15 +6,6 @@ from users.forms import CustomUserCreationForm, CustomUserChangeForm
 User = get_user_model()
 
 
-@admin.register(User)
-class CustomUserAdmin(admin.ModelAdmin):
-    add_form = CustomUserCreationForm
-    form = CustomUserChangeForm
-    model = User
-    list_display = ['username', 'email', 'role']
-    list_editable = 'role',
-
-
 @admin.register(IngredientItem)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('title', 'unit_of_measurement')  # Отображаем название и единицу измерения
@@ -60,10 +51,3 @@ class ShoppingListAdmin(admin.ModelAdmin):
     list_display = ('user', 'dish')  # Отображаем пользователя и рецепт из списка покупок
     list_filter = ('user',)  # Фильтрация по пользователю
     ordering = ('user',)  # Сортировка по пользователю
-
-# Добавление админского интерфейса для пользователей
-class UserAdmin(admin.ModelAdmin):
-    search_fields = ('email', 'username')  # Поиск по адресу электронной почты и имени пользователя
-
-admin.site.unregister(User)  # Убираем стандартный админский интерфейс для User
-admin.site.register(User, UserAdmin)  # Регистрируем новый интерфейс
