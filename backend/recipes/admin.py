@@ -20,8 +20,8 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Dish)
 class DishAdmin(admin.ModelAdmin):
-    list_display = ('name', 'creator', 'publication_date', 'cooking_duration', 'get_favorited_count')  # Добавлено поле для избранного
-    search_fields = ('name', 'creator__username')  # Поиск по названию и имени пользователя
+    list_display = ('title', 'creator', 'publication_date', 'cooking_duration', 'get_favorited_count')  # Добавлено поле для избранного
+    search_fields = ('title', 'creator__username')  # Поиск по названию и имени пользователя
     list_filter = ('tags',)  # Фильтрация по тегам
     ordering = ('-publication_date',)  # Сортировка по дате публикации
 

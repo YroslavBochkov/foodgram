@@ -1,18 +1,36 @@
-import uuid
-
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from slugify import slugify
 
 
-class IngredientItem(models.Model):
+class AddSlugNameFieldsModel(models.Model):
+    """Абстрактная базовая модель."""
+
+    title = models.CharField(max_length=200, verbose_name='Название')
+    slug = models.SlugField(max_length=200, unique=True)
+
+    def save(self, *args, **kwargs):
+        """Генерирует slug из названия, если он не указан."""
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super(AddSlugNameFieldsModel, self).save(*args, **kwargs)
+
+    class Meta:
+        """Мета класс абстрактной базовой модели."""
+
+        abstract = True
+        ordering = ('title',)
+
+    def __str__(self):
+        """Описание объекта."""
+        return self.title
+
+
+class IngredientItem(AddSlugNameFieldsModel):
     """Модель для ингредиента."""
 
-    title = models.CharField(
-        max_length=250,
-        verbose_name='Название ингредиента',
-    )
     unit_of_measurement = models.CharField(
         max_length=100,
         verbose_name='Единица измерения',
@@ -32,14 +50,9 @@ class IngredientItem(models.Model):
         return f'{self.title}, {self.unit_of_measurement}'
 
 
-class RecipeTag(models.Model):
+class RecipeTag(AddSlugNameFieldsModel):
     """Модель для тега."""
 
-    title = models.CharField(
-        max_length=200,
-        verbose_name='Название тега',
-        unique=True,
-    )
     slug = models.SlugField(
         max_length=200,
         unique=True,
@@ -50,20 +63,13 @@ class RecipeTag(models.Model):
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
 
-    def save(self, *args, **kwargs):
-        if not self.slug:  # Генерация slug, если он не указан
-            self.slug = slugify(self.title)  # Генерация slug на основе названия
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.title
-
 
 class Dish(models.Model):
     """Модель для рецепта."""
 
     creator = models.ForeignKey(
-        User, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE,
         related_name='dishes',
         verbose_name='Автор',
     )
@@ -133,7 +139,7 @@ class FavoriteRecipe(models.Model):
     """Модель для избранных рецептов."""
     
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='favorite_recipes',
         verbose_name='Закладки',
     )
@@ -161,7 +167,7 @@ class ShoppingList(models.Model):
     """Модель для списка покупок."""
 
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='shopping_lists',
         verbose_name='Покупатель',
     )
