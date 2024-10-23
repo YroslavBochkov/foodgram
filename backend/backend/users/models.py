@@ -8,7 +8,6 @@ from foodgram import constants
 
 
 class CustomUser(AbstractUser):
-
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ("username", "first_name", "last_name")
 
@@ -27,7 +26,7 @@ class CustomUser(AbstractUser):
         validators=[UnicodeUsernameValidator(), validate_username_not_me],
         verbose_name="Имя пользователя",
         error_messages={
-            "unique": "Пользователь уже существует",
+            "unique": "Пользователь с таким именем уже зарегистрирован",
         },
     )
     first_name = models.CharField(
@@ -78,4 +77,4 @@ class Subscription(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.username} вы подписаны на {self.author.username}"
+        return f"{self.user.username} подписан на {self.author.username}"
