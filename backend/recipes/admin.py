@@ -1,53 +1,100 @@
 from django.contrib import admin
-from django.contrib.auth import get_user_model
-from .models import IngredientItem, RecipeTag, Dish, DishIngredient, FavoriteRecipe, ShoppingList
-from users.forms import CustomUserCreationForm, CustomUserChangeForm
+from django.db import models
+from django.forms import CheckboxSelectMultiple
 
-User = get_user_model()
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Tag)
 
 
-@admin.register(IngredientItem)
+class RecipeIngredientInline(admin.TabularInline):
+    """Inline для ингредиентов рецепта."""
+    model = RecipeIngredient
+    extra = 0
+
+
+@admin.register(Recipe)
+class RecipeAdmin(admin.ModelAdmin):
+    """Админка для рецептов."""
+    list_display = (
+        'name',
+        'author',
+        'favorite_count',
+        'get_tags',
+    )
+    search_fields = [
+        'author__username',
+        'name',
+    ]
+    list_filter = [
+        'tags',
+    ]
+    inlines = [RecipeIngredientInline]
+    fieldsets = (
+        (None, {'fields': ('name', 'author', 'tags')}),
+        ('Описание', {'fields': ('text', 'cooking_time', 'image')}),
+    )
+    add_fieldsets = (
+        (
+            None,
+            {
+                'classes': ('wide',),
+                'fields': (
+                    'name',
+                    'author',
+                    'tags',
+                    'text',
+                    'cooking_time',
+                    'ingredients',
+                    'image',
+                ),
+            },
+        ),
+    )
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
+
+    def favorite_count(self, obj):
+        """Возвращает количество добавлений в избранное."""
+        return Favorite.objects.filter(recipe=obj).count()
+
+    def get_tags(self, obj):
+        """Возвращает список тегов рецепта."""
+        return ', '.join(
+            obj.tags.values_list('name', flat=True).order_by('name'))
+
+    favorite_count.short_description = 'В избранном'
+    get_tags.short_description = 'Теги'
+
+
+@admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('title', 'unit_of_measurement')  # Отображаем название и единицу измерения
-    search_fields = ('title',)  # Поиск по названию
-    ordering = ('title',)  # Сортировка по названию
+    """Админка для ингредиентов."""
+    list_display = (
+        'name',
+        'measurement_unit',
+    )
+    search_fields = [
+        'name',
+    ]
 
-@admin.register(RecipeTag)
+
+@admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('title', 'slug')  # Отображаем название и slug
-    search_fields = ('title',)  # Поиск по названию
-    ordering = ('title',)  # Сортировка по названию
+    """Админка для тегов."""
+    list_display = ('name', 'slug')
+    search_fields = [
+        'name',
+    ]
 
-@admin.register(Dish)
-class DishAdmin(admin.ModelAdmin):
-    list_display = ('title', 'creator', 'publication_date', 'cooking_duration', 'get_favorited_count')  # Добавлено поле для избранного
-    search_fields = ('title', 'creator__username')  # Поиск по названию и имени пользователя
-    list_filter = ('tags',)  # Фильтрация по тегам
-    ordering = ('-publication_date',)  # Сортировка по дате публикации
 
-    def get_favorited_count(self, obj):
-        """Возвращает количество добавлений рецепта в избранное."""
-        return FavoriteRecipe.objects.filter(dish=obj).count()  # Подсчет избранных рецептов
-    get_favorited_count.short_description = 'Количество добавлений в избранное'  # Название столбца
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    """Админка для избранных рецептов."""
+    list_display = ('user', 'recipe')
 
-class DishIngredientInline(admin.TabularInline):
-    model = DishIngredient
-    extra = 1  # Количество пустых форм для добавления
 
-@admin.register(DishIngredient)
-class DishIngredientAdmin(admin.ModelAdmin):
-    list_display = ('ingredient', 'quantity', 'dish')  # Отображаем ингредиент, количество и рецепт
-    list_filter = ('dish',)  # Фильтрация по рецепту
-    ordering = ('dish',)  # Сортировка по рецепту
-
-@admin.register(FavoriteRecipe)
-class FavoriteRecipeAdmin(admin.ModelAdmin):
-    list_display = ('user', 'dish')  # Отображаем пользователя и избранный рецепт
-    list_filter = ('user',)  # Фильтрация по пользователю
-    ordering = ('user',)  # Сортировка по пользователю
-
-@admin.register(ShoppingList)
-class ShoppingListAdmin(admin.ModelAdmin):
-    list_display = ('user', 'dish')  # Отображаем пользователя и рецепт из списка покупок
-    list_filter = ('user',)  # Фильтрация по пользователю
-    ordering = ('user',)  # Сортировка по пользователю
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+    """Админка для корзины покупок."""
+    list_display = ('user', 'recipe')

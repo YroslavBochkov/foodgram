@@ -1,52 +1,32 @@
 from django.urls import include, path
-from rest_framework.routers import DynamicRoute, Route, SimpleRouter
+from rest_framework.routers import DefaultRouter
 
-from .views import IngredientItemViewSet, DishViewSet, RecipeTagViewSet, UsersViewSet
-from users.urls import auth_urls
+from api.views import (CustomUserViewSet, IngredientViewSet, RecipeViewSet,
+                       TagViewSet)
 
-class UsersRouter(SimpleRouter):
-    routes = [
-        DynamicRoute(
-            url=r'^{prefix}/{url_path}{trailing_slash}$',
-            name='{basename}-{url_name}',
-            detail=True,
-            initkwargs={}
-        ),
-        Route(
-            url=r'^{prefix}{trailing_slash}$',
-            mapping={
-                'get': 'list',
-                'post': 'create'
-            },
-            name='{basename}-list',
-            detail=False,
-            initkwargs={'suffix': 'List'}
-        ),
-        Route(
-            url=r'^{prefix}/{lookup}{trailing_slash}$',
-            mapping={
-                'get': 'retrieve',
-                'patch': 'partial_update',
-                'delete': 'destroy'
-            },
-            name='{basename}-detail',
-            detail=True,
-            initkwargs={'suffix': 'Instance'}
-        ),
-    ]
+app_name = 'api'  # Имя приложения для использования в пространстве имен URL
 
+# Создание маршрутизатора для API
+router_v1 = DefaultRouter()
+# Регистрация маршрутов для пользователей
+router_v1.register('users', CustomUserViewSet, basename='users')
+# Регистрация маршрутов для тегов
+router_v1.register('tags', TagViewSet, basename='tags')
+# Регистрация маршрутов для ингредиентов
+router_v1.register('ingredients', IngredientViewSet, basename='ingredient')
+# Регистрация маршрутов для рецептов
+router_v1.register('recipes', RecipeViewSet, basename='recipe')
 
-users_router = UsersRouter()
-users_router.register('', UsersViewSet)
+# Определение конечных точек версии 1 API
+v1_endpoints = [
+    path('', include(router_v1.urls)),  # Включение маршрутов из маршрутизатора
+    # Включение маршрутов аутентификации Djoser
+    path('auth/', include('djoser.urls')),
+    # Включение маршрутов для токенов аутентификации Djoser
+    path('auth/', include('djoser.urls.authtoken')),
+]
 
-
-router = SimpleRouter()
-router.register('ingredients', IngredientItemViewSet)
-router.register('tags', RecipeTagViewSet)
-router.register('recipes', DishViewSet)
-
+# Определение окончательных маршрутов для API
 urlpatterns = [
-    path('', include(router.urls)),
-    path('v1/users/', include(users_router.urls)),
-    path('v1/auth/', include(auth_urls)),
+    path('', include(v1_endpoints)),  # Включение конечных точек версии 1 API
 ]

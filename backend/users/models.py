@@ -1,91 +1,80 @@
-import uuid
-
-from django.db import models
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import models
 
-
-ADMIN = 'admin'
-USER = 'user'
-
-ROLES = [
-    ('USER', 'Пользователь'),
-    ('ADMIN', 'Администратор'),
-]
-
-ACCESS_LEVEL = {
-    'USER': 1,
-    'ADMIN': 2,
-}
+from users.validators import validate_username_not_me
+from foodgram import constants
 
 
 class CustomUser(AbstractUser):
-    """Кастомная модель пользователя с аватаром."""
-    avatar = models.ImageField(
-        upload_to='users/', verbose_name='Аватар', blank=True, null=True
-    )
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ("username", "first_name", "last_name")
 
-    username = models.CharField(
-        'Имя пользователя', max_length=150, unique=True,
-        validators=[RegexValidator(r'^[\w.@+-]+\Z')]
-    )
     email = models.EmailField(
-        'Email пользователя', max_length=254, unique=True
+        max_length=constants.EMAIL_MAX_LENGTH,
+        unique=True,
+        blank=False,
+        verbose_name="Адрес электронной почты",
+        error_messages={
+            "unique": "Пользователь с таким адресом уже зарегистрирован",
+        },
+    )
+    username = models.CharField(
+        max_length=constants.USERNAME_MAX_LENGTH,
+        unique=True,
+        validators=[UnicodeUsernameValidator(), validate_username_not_me],
+        verbose_name="Имя пользователя",
+        error_messages={
+            "unique": "Пользователь с таким именем уже зарегистрирован",
+        },
     )
     first_name = models.CharField(
-        'Имя', max_length=150, blank=True
+        max_length=constants.FIRSTNAME_MAX_LENGTH, verbose_name="Имя"
     )
     last_name = models.CharField(
-        'Фамилия', max_length=150, blank=True
+        max_length=constants.LASTNAME_MAX_LENGTH, verbose_name="Фамилия"
     )
-    role = models.CharField(
-        'Роль пользователя', max_length=15, choices=ROLES, default='user'
-    )
-    confirmation_code = models.UUIDField(
-        'Код подтверждения', default=uuid.uuid4
+    avatar = models.ImageField(
+        upload_to="avatars/",
+        null=True,
+        blank=True,
+        verbose_name="Аватар",
     )
 
     class Meta:
-        ordering = ('id',)
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
-
-    @property
-    def has_access(self):
-        return self._access
-
-    @has_access.setter
-    def has_access(self, role):
-        """Проверяет уровень доступа пользователя."""
-        self._access = (
-            ACCESS_LEVEL[self.role] <= ACCESS_LEVEL[role]
-            or self.is_superuser
-        )
+        ordering = ["username"]
+        verbose_name = "пользователь"
+        verbose_name_plural = "Пользователи"
 
     def __str__(self):
         return self.username
 
 
-class Subscribe(models.Model):
-    """Модель подписки на автора."""
+User = get_user_model()
+
+
+class Subscription(models.Model):
     user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name='subscriptions',
-        verbose_name='Подписчик'
+        User,
+        on_delete=models.CASCADE,
+        related_name="subscriber",
+        verbose_name="подписчик",
     )
     author = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name='subscribers',
-        verbose_name='Автор'
+        User,
+        on_delete=models.CASCADE,
+        related_name="subscribed_to",
+        verbose_name="Автор",
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата подписки')
 
     class Meta:
-        ordering = ('-created_at',)  # Сортировка по убыванию даты подписки
+        verbose_name = "подписка"
+        verbose_name_plural = "Подписки"
         constraints = [
-            models.UniqueConstraint(fields=['user', 'author'],
-                                    name='unique_subscription')  # Уникальное ограничение на комбинацию user и author
+            models.UniqueConstraint(name='unique_subscription',
+                                    fields=["user", "author"])
         ]
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
 
     def __str__(self):
-        return f'{self.user} подписан на {self.author}'
+        return f"{self.user.username} подписан на {self.author.username}"
