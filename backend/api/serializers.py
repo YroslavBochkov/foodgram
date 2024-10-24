@@ -102,7 +102,7 @@ class UserSubscriptionSerializer(BaseCustomUserSerializer):
         return obj.recipes.count()
 
 
-class CustomUserSetPasswordSerializer(serializers.Serializer):
+class CustomUserPasswordSerializer(serializers.Serializer):
     """Сериализатор для изменения пароля пользователя."""
     current_password = serializers.CharField(required=True)
     new_password = serializers.CharField(
@@ -113,7 +113,7 @@ class CustomUserSetPasswordSerializer(serializers.Serializer):
         user = self.context['request'].user
         if not user.check_password(data.get('current_password')):
             raise serializers.ValidationError(
-                'Неверный пароль.')
+                'Неравильный пароль.')
         return data
 
 
@@ -179,7 +179,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate_ingredients(self, value):
         """Проверяет наличие ингредиентов и их уникальность."""
         if not value:
-            raise serializers.ValidationError('Добавьте ингредиенты.')
+            raise serializers.ValidationError('Укажите ингредиенты.')
         ingredient_ids = set()
         for ingredient in value:
             ingredient_id = ingredient['ingredient']['id']
@@ -194,7 +194,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate_tags(self, value):
         """Проверяет наличие тегов и их уникальность."""
         if not value:
-            raise serializers.ValidationError('Добавьте тег.')
+            raise serializers.ValidationError('Укажите тег.')
         tags = set()
         for tag in value:
             if tag in tags:

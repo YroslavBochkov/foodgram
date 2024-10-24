@@ -10,11 +10,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from api.filters import RecipeFilter
-from api.mixins import AddRemoveMixin
+from api.mixins import AddDelMixin
 from api.pagination import CustomPagination
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
-                             CustomUserSetPasswordSerializer,
+                             CustomUserPasswordSerializer,
                              IngredientsSerializer, RecipeSerializer,
                              UserSubscriptionSerializer, TagSerializer)
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
@@ -44,7 +44,7 @@ class CustomUserViewSet(UserViewSet):
         if self.action == 'create':
             return CustomUserCreateSerializer
         if self.action == 'set_password':
-            return CustomUserSetPasswordSerializer
+            return CustomUserPasswordSerializer
         return CustomUserSerializer
 
     @action(detail=False, methods=['POST'])
@@ -163,7 +163,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
-class RecipeViewSet(viewsets.ModelViewSet, AddRemoveMixin):
+class RecipeViewSet(viewsets.ModelViewSet, AddDelMixin):
     """ViewSet для управления рецептами."""
     queryset = Recipe.objects.all().order_by('-created_at')
     serializer_class = RecipeSerializer

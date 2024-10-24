@@ -6,7 +6,7 @@ from api.serializers import RecipeDemoSerializer
 from recipes.models import Recipe
 
 
-class AddRemoveMixin:
+class AddDelMixin:
     """Миксин для добавления и удаления объектов."""
 
     def handle_add_remove(self, request, pk, model):
