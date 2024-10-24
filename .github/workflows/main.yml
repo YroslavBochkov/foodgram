@@ -1,0 +1,17 @@
+name: Main Foodgram Workflow
+
+on:
+    push:
+      branches:
+        - main
+  
+  jobs:
+    tests:
+      runs-on: ubuntu-latest
+      services:
+        postgres:
+          image: postgres:13
+          env:
+            POSTGRES_USER: django_user
+            POSTGRES_PASSWORD: django_password
+            POSTGRES_DB: django_db

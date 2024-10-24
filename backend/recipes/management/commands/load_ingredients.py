@@ -1,4 +1,5 @@
 import csv
+
 from django.core.management import BaseCommand
 from recipes.models import Ingredient
 
@@ -12,7 +13,7 @@ class Command(BaseCommand):
     def import_ingredients(self, file='data/ingredients.csv'):
         """Импортирует ингредиенты из указанного CSV-файла."""
         file_path = '/Users/yaroslav/Dev/foodgram/data/ingredients.csv'
-        
+
         try:
             with open(file_path, newline='', encoding='utf-8') as f:
                 reader = csv.reader(f)
@@ -27,4 +28,4 @@ class Command(BaseCommand):
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл {file_path} не найден.'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при загрузке ингредиентов: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при загрузке: {e}'))

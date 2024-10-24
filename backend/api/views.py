@@ -1,24 +1,24 @@
+from api.filters import RecipeFilter
+from api.mixins import AddDelMixin
+from api.pagination import CustomPagination
+from api.permissions import IsAuthorOrReadOnly
+from api.serializers import (CustomUserCreateSerializer,
+                             CustomUserPasswordSerializer,
+                             CustomUserSerializer, IngredientsSerializer,
+                             RecipeSerializer, TagSerializer,
+                             UserSubscriptionSerializer)
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, OuterRef, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Tag)
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-
-from api.filters import RecipeFilter
-from api.mixins import AddDelMixin
-from api.pagination import CustomPagination
-from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
-                             CustomUserPasswordSerializer,
-                             IngredientsSerializer, RecipeSerializer,
-                             UserSubscriptionSerializer, TagSerializer)
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Tag)
 from users.models import Subscription
 
 User = get_user_model()
@@ -158,9 +158,9 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """Возвращает ингредиенты, отфильтрованные по имени, если указано."""
         queryset = super().get_queryset()
-        if name := self.request.query_params.get('name'):
-            queryset = queryset.filter(name__istartswith=name)
-        return queryset
+        name = self.request.query_params.get('name')
+
+        return queryset.filter(name__istartswith=name) if name else queryset
 
 
 class RecipeViewSet(viewsets.ModelViewSet, AddDelMixin):

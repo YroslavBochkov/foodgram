@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
-
 from users.validators import validate_username_not_me
+
 from foodgram import constants
 
 
